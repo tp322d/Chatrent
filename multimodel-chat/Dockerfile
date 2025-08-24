@@ -5,16 +5,13 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install root dependencies
 COPY package*.json ./
-COPY server/package*.json ./server/
-COPY client/package*.json ./client/
-
-# Install dependencies
 RUN npm install --only=production && npm cache clean --force
 
-# Install client dependencies
-WORKDIR /app/client
+# Install server dependencies
+COPY server/package*.json ./server/
+WORKDIR /app/server
 RUN npm install --only=production && npm cache clean --force
 
 # Build the client
