@@ -1,0 +1,33 @@
+{
+  "name": "multimodel-chat",
+  "version": "1.0.0",
+  "description": "Multi-model AI chat comparison tool",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "nodemon server/index.js",
+    "client:dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js",
+    "install-all": "npm install && cd client && npm install"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "mongoose": "^8.12.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "compression": "^1.8.1",
+    "@anthropic-ai/sdk": "^0.52.0",
+    "openai": "^5.10.1",
+    "@google/generative-ai": "^0.24.0",
+    "axios": "^1.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3",
+    "concurrently": "^8.2.2"
+  }
+}
