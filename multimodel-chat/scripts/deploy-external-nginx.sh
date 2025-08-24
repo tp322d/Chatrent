@@ -345,14 +345,14 @@ show_status() {
     print_status "   Stop app: docker-compose -p $COMPOSE_PROJECT_NAME down"
 }
 
-# Backup existing data
+# Backup existing data (DISABLED FOR TESTING - force fresh DB)
 backup_data() {
-    if [ -d "/var/lib/multimodel/mongodb" ] && [ "$(ls -A /var/lib/multimodel/mongodb)" ]; then
-        print_status "Creating backup of existing data..."
-        timestamp=$(date +%Y%m%d_%H%M%S)
-        tar -czf "$BACKUP_DIR/multimodel_backup_$timestamp.tar.gz" -C /var/lib/multimodel .
-        print_status "Backup created: $BACKUP_DIR/multimodel_backup_$timestamp.tar.gz"
-    fi
+    print_status "Skipping backup - removing existing MongoDB data for fresh start..."
+    # Remove existing MongoDB data to force fresh initialization
+    sudo rm -rf /var/lib/multimodel/mongodb/* 2>/dev/null || true
+    # Remove Docker volumes
+    docker volume rm $(docker volume ls -q | grep mongodb) 2>/dev/null || true
+    print_status "MongoDB data cleared for fresh initialization"
 }
 
 # Update application
@@ -372,7 +372,6 @@ main_deploy() {
     install_docker
     create_directories
     backup_data
-    setup_nginx_config
     deploy_app
     
     # Ask about SSL setup
