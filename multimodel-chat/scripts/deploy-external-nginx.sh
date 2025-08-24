@@ -206,6 +206,7 @@ create_env_file() {
     
     # Generate secure credentials
     MONGO_PASSWORD=$(generate_password)
+    MONGO_APP_PASSWORD=$(generate_password)
     JWT_SECRET=$(generate_jwt_secret)
     
     cat > .env << EOF
@@ -220,6 +221,7 @@ DOMAIN=$DOMAIN
 # Database Configuration
 MONGO_ROOT_USER=admin
 MONGO_ROOT_PASSWORD=$MONGO_PASSWORD
+MONGO_APP_PASSWORD=$MONGO_APP_PASSWORD
 MONGO_DB_NAME=multimodel_chat
 
 # JWT Secret (Auto-generated secure key)

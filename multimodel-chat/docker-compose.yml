@@ -10,6 +10,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-secure_password_change_me}
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-multimodel_chat}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:-app_password_change_me}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-multimodel_chat}
     ports:
       - "27017:27017"
     volumes:
@@ -40,7 +42,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3101
-      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-secure_password_change_me}@mongodb:27017/${MONGO_DB_NAME:-multimodel_chat}?authSource=admin
+      MONGODB_URI: mongodb://app_user:${MONGO_APP_PASSWORD:-app_password_change_me}@mongodb:27017/${MONGO_DB_NAME:-multimodel_chat}?authSource=${MONGO_DB_NAME:-multimodel_chat}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       CLIENT_URL: ${CLIENT_URL:-http://localhost}
       REDIS_URL: redis://redis:6379
