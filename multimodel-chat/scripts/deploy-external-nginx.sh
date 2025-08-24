@@ -79,7 +79,7 @@ create_directories() {
     chmod 755 /var/log/multimodel
 }
 
-# Setup Nginx configuration
+# Setup Nginx configuration (HTTP-only initially)
 setup_nginx_config() {
     print_blue "Setting up Nginx configuration for $DOMAIN..."
     
@@ -91,25 +91,58 @@ setup_nginx_config() {
         exit 1
     fi
     
-    # Copy Nginx configuration
-    if [ -f "nginx/chatrent.deeprank.ai.conf" ]; then
-        print_status "Installing Nginx configuration..."
-        cp "nginx/chatrent.deeprank.ai.conf" "$NGINX_CONF_DIR/"
+    # Remove any existing configuration
+    if [ -f "$NGINX_CONF_DIR/chatrent.deeprank.ai.conf" ]; then
+        print_status "Removing existing Nginx configuration..."
+        rm "$NGINX_CONF_DIR/chatrent.deeprank.ai.conf"
+    fi
+    
+    # Install HTTP-only configuration first (no SSL certificates required)
+    if [ -f "nginx/chatrent.deeprank.ai-http.conf" ]; then
+        print_status "Installing HTTP-only Nginx configuration..."
+        cp "nginx/chatrent.deeprank.ai-http.conf" "$NGINX_CONF_DIR/chatrent.deeprank.ai.conf"
         
         # Test Nginx configuration
         nginx -t
         if [ $? -eq 0 ]; then
             print_status "Nginx configuration is valid"
             systemctl reload nginx
-            print_status "Nginx configuration reloaded"
+            print_status "Nginx configuration reloaded (HTTP-only)"
         else
             print_error "Nginx configuration test failed"
             rm "$NGINX_CONF_DIR/chatrent.deeprank.ai.conf"
             exit 1
         fi
     else
-        print_error "Nginx configuration file not found: nginx/chatrent.deeprank.ai.conf"
+        print_error "HTTP Nginx configuration file not found: nginx/chatrent.deeprank.ai-http.conf"
         exit 1
+    fi
+}
+
+# Upgrade Nginx to HTTPS configuration
+setup_nginx_ssl_config() {
+    print_blue "Upgrading Nginx to HTTPS configuration..."
+    
+    if [ -f "nginx/chatrent.deeprank.ai.conf" ]; then
+        print_status "Installing HTTPS Nginx configuration..."
+        cp "nginx/chatrent.deeprank.ai.conf" "$NGINX_CONF_DIR/"
+        
+        # Test Nginx configuration
+        nginx -t
+        if [ $? -eq 0 ]; then
+            print_status "HTTPS Nginx configuration is valid"
+            systemctl reload nginx
+            print_status "Nginx upgraded to HTTPS"
+        else
+            print_error "HTTPS Nginx configuration test failed, keeping HTTP version"
+            # Restore HTTP-only configuration
+            cp "nginx/chatrent.deeprank.ai-http.conf" "$NGINX_CONF_DIR/chatrent.deeprank.ai.conf"
+            systemctl reload nginx
+            return 1
+        fi
+    else
+        print_error "HTTPS Nginx configuration file not found: nginx/chatrent.deeprank.ai.conf"
+        return 1
     fi
 }
 
@@ -136,14 +169,26 @@ setup_ssl() {
     
     # Generate certificate
     print_status "Generating SSL certificate for $DOMAIN..."
-    certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
-    
-    # Start nginx back up
-    systemctl start nginx
-    
-    # Set up auto-renewal
-    echo "0 12 * * * /usr/bin/certbot renew --quiet && systemctl reload nginx" | crontab -
-    print_status "SSL auto-renewal configured"
+    if certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN; then
+        print_status "SSL certificate generated successfully"
+        
+        # Start nginx back up
+        systemctl start nginx
+        
+        # Upgrade to HTTPS configuration
+        setup_nginx_ssl_config
+        
+        # Set up auto-renewal
+        echo "0 12 * * * /usr/bin/certbot renew --quiet && systemctl reload nginx" | crontab -
+        print_status "SSL auto-renewal configured"
+        
+        return 0
+    else
+        print_error "Failed to generate SSL certificate"
+        # Start nginx back up with HTTP configuration
+        systemctl start nginx
+        return 1
+    fi
 }
 
 # Generate secure random strings
@@ -252,18 +297,29 @@ deploy_app() {
 test_deployment() {
     print_blue "Testing deployment..."
     
-    # Test HTTPS
-    if curl -f -k https://$DOMAIN/health > /dev/null 2>&1; then
-        print_status "✅ HTTPS health check passed"
+    # Test HTTP first
+    if curl -f http://$DOMAIN/health > /dev/null 2>&1; then
+        print_status "✅ HTTP health check passed"
     else
-        print_warning "❌ HTTPS health check failed. Check Nginx configuration."
+        print_warning "❌ HTTP health check failed. Check Nginx configuration."
     fi
     
-    # Test HTTP redirect
-    if curl -I http://$DOMAIN 2>/dev/null | grep -q "301"; then
-        print_status "✅ HTTP to HTTPS redirect working"
+    # Test HTTPS only if SSL certificates exist
+    if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+        if curl -f -k https://$DOMAIN/health > /dev/null 2>&1; then
+            print_status "✅ HTTPS health check passed"
+        else
+            print_warning "❌ HTTPS health check failed. SSL may not be configured properly."
+        fi
+        
+        # Test HTTP redirect
+        if curl -I http://$DOMAIN 2>/dev/null | grep -q "301"; then
+            print_status "✅ HTTP to HTTPS redirect working"
+        else
+            print_warning "❌ HTTP to HTTPS redirect not working properly"
+        fi
     else
-        print_warning "❌ HTTP to HTTPS redirect not working properly"
+        print_warning "SSL certificates not found - running in HTTP-only mode"
     fi
 }
 
@@ -322,9 +378,16 @@ main_deploy() {
     read -p "Do you want to set up SSL certificate for $DOMAIN? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        setup_ssl
+        if setup_ssl; then
+            print_status "✅ SSL setup completed successfully"
+            SSL_ENABLED=true
+        else
+            print_warning "❌ SSL setup failed, but app is still accessible via HTTP"
+            SSL_ENABLED=false
+        fi
     else
         print_warning "SSL setup skipped. You can run: $0 ssl later"
+        SSL_ENABLED=false
     fi
     
     test_deployment
@@ -335,7 +398,11 @@ main_deploy() {
     echo "================================================="
     echo ""
     echo -e "${BLUE}🌐 Your MultiModel Chat is now live at:${NC}"
-    echo -e "${BLUE}   https://$DOMAIN${NC}"
+    if [ "$SSL_ENABLED" = true ]; then
+        echo -e "${BLUE}   https://$DOMAIN${NC} (HTTPS - Secure)"
+    else
+        echo -e "${BLUE}   http://$DOMAIN${NC} (HTTP - Consider adding SSL later)"
+    fi
     echo ""
     echo -e "${GREEN}📋 Next Steps:${NC}"
     echo "   1. Visit your app and create an admin account"
