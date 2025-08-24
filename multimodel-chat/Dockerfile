@@ -18,7 +18,7 @@ COPY client/package*.json ./
 RUN npm install
 
 COPY client/ ./
-RUN npm run build
+RUN rm -rf node_modules/.vite && npm run build
 
 # Production image
 FROM base AS runner

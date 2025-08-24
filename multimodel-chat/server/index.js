@@ -14,6 +14,9 @@ const auth = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3101;
 
+// Trust proxy (important for rate limiting behind Nginx)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
