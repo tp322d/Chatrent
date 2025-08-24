@@ -5,13 +5,8 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-# Copy package files and install root dependencies
+# Copy package files and install root dependencies (includes all server deps)
 COPY package*.json ./
-RUN npm install --only=production && npm cache clean --force
-
-# Install server dependencies
-COPY server/package*.json ./server/
-WORKDIR /app/server
 RUN npm install --only=production && npm cache clean --force
 
 # Build the client
@@ -36,9 +31,8 @@ ENV PORT=3101
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy server files
+# Copy server files and dependencies
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=deps --chown=nextjs:nodejs /app/server/node_modules ./server/node_modules
 COPY --chown=nextjs:nodejs server/ ./server/
 COPY --chown=nextjs:nodejs package*.json ./
 
