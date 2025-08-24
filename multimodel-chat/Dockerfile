@@ -11,11 +11,11 @@ COPY server/package*.json ./server/
 COPY client/package*.json ./client/
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Install client dependencies
 WORKDIR /app/client
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Build the client
 FROM base AS client-builder
@@ -23,7 +23,7 @@ WORKDIR /app/client
 
 # Copy client source and dependencies
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY client/ ./
 RUN npm run build
@@ -33,7 +33,7 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3101
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -53,10 +53,10 @@ RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
 USER nextjs
 
-EXPOSE 3001
+EXPOSE 3101
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:3101/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 CMD ["node", "server/index.js"]
