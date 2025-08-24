@@ -4,30 +4,24 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class AIService {
   constructor() {
-    this.clients = new Map();
-  }
-
-  // Initialize clients with user's API keys
-  initializeClients(apiKeys) {
-    const clients = {};
-
-    if (apiKeys.openai) {
-      clients.openai = new OpenAI({
-        apiKey: apiKeys.openai
+    // Initialize clients with environment variables
+    this.clients = {};
+    
+    if (process.env.OPENAI_API_KEY) {
+      this.clients.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
       });
     }
 
-    if (apiKeys.anthropic) {
-      clients.anthropic = new Anthropic({
-        apiKey: apiKeys.anthropic
+    if (process.env.ANTHROPIC_API_KEY) {
+      this.clients.anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
       });
     }
 
-    if (apiKeys.google) {
-      clients.google = new GoogleGenerativeAI(apiKeys.google);
+    if (process.env.GOOGLE_API_KEY) {
+      this.clients.google = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     }
-
-    return clients;
   }
 
   // OpenAI request
@@ -150,8 +144,7 @@ class AIService {
   }
 
   // Main method to query multiple models simultaneously
-  async queryMultipleModels(apiKeys, prompt, selectedModels) {
-    const clients = this.initializeClients(apiKeys);
+  async queryMultipleModels(prompt, selectedModels) {
     const promises = [];
 
     // Default models if none selected
@@ -186,7 +179,7 @@ class AIService {
 
       if (!provider || !model) continue;
 
-      const client = clients[provider];
+      const client = this.clients[provider];
       if (!client) {
         // Add error response for missing API key
         promises.push(Promise.resolve({

@@ -22,22 +22,8 @@ router.post('/compare', async (req, res) => {
       return res.status(400).json({ error: 'Prompt cannot exceed 5000 characters' });
     }
 
-    // Get user's API keys
-    const user = await User.findById(userId).select('apiKeys');
-    if (!user || !user.apiKeys) {
-      return res.status(400).json({ error: 'User API keys not found' });
-    }
-
-    const hasAnyApiKey = user.apiKeys.openai || user.apiKeys.anthropic || user.apiKeys.google;
-    if (!hasAnyApiKey) {
-      return res.status(400).json({ 
-        error: 'Please configure at least one API key in your settings' 
-      });
-    }
-
-    // Query multiple models
+    // Query multiple models using server-side API keys
     const result = await aiService.queryMultipleModels(
-      user.apiKeys, 
       prompt.trim(), 
       models
     );

@@ -24,7 +24,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <MessageSquare className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900">MultiModel Chat</span>
+              <span className="text-xl font-bold text-gray-900">ChatRent.io</span>
             </Link>
           </div>
 

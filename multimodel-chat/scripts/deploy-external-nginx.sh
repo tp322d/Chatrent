@@ -237,11 +237,10 @@ REDIS_URL=redis://redis:6379
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
-# API Keys (Users will configure these in the app)
-# Users add their own keys via Settings page:
-# - OpenAI: https://platform.openai.com/api-keys
-# - Anthropic: https://console.anthropic.com/
-# - Google: https://makersuite.google.com/app/apikey
+# API Keys (Hardcoded for testing - replace with your actual keys)
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
 
 # Optional: Email Configuration (uncomment and configure if needed)
 # SMTP_HOST=smtp.gmail.com

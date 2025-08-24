@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Send, Loader2, AlertCircle, CheckCircle, Settings as SettingsIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const ModelCard = ({ response, isLoading }) => {
   const getProviderColor = (provider) => {
@@ -72,6 +73,8 @@ const ModelCard = ({ response, isLoading }) => {
 };
 
 const Chat = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState([]);
@@ -97,6 +100,13 @@ const Chat = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check authentication first
+    if (!user) {
+      toast.error('Please sign in to chat with AI models');
+      navigate('/login');
+      return;
+    }
     
     if (!prompt.trim()) {
       toast.error('Please enter a prompt');
