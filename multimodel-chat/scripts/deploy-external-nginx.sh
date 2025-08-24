@@ -374,23 +374,6 @@ main_deploy() {
     backup_data
     deploy_app
     
-    # Ask about SSL setup
-    echo ""
-    read -p "Do you want to set up SSL certificate for $DOMAIN? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if setup_ssl; then
-            print_status "✅ SSL setup completed successfully"
-            SSL_ENABLED=true
-        else
-            print_warning "❌ SSL setup failed, but app is still accessible via HTTP"
-            SSL_ENABLED=false
-        fi
-    else
-        print_warning "SSL setup skipped. You can run: $0 ssl later"
-        SSL_ENABLED=false
-    fi
-    
     test_deployment
     show_status
     
